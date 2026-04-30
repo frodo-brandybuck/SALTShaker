@@ -15,6 +15,7 @@ import astropy.table as at
 import logging
 import abc
 from copy import deepcopy
+import pandas as pd
 
 log=logging.getLogger(__name__)
 
@@ -399,7 +400,7 @@ def rdkcor(surveylist,options):
     return kcordict
 
 
-        
+# LIAM changed this:
 def rdAllData(snlists,estimate_tpk,
               dospec=False,peakmjdlist=None,
               waverange=[2000,9200],binspecres=None,snparlist=None,specrecallist=None,maxsn=None):
@@ -418,24 +419,35 @@ def rdAllData(snlists,estimate_tpk,
         src['SNID'] = src['SNID'].astype(str)
     
     nsnperlist = []
-    for snlist in snlists.split(','):
+    print(snlists)
+    if not snlists.endswith('.parquet'): 
+        print("snlists good")
+        for snlist in snlists.split(','):
 
-        snlist = os.path.expandvars(snlist)
-        if not os.path.exists(snlist):
-            log.info('SN list file %s does not exist.       Checking %s/trainingdata/%s'%(snlist,data_rootdir,snlist))
-            snlist = '%s/trainingdata/%s'%(data_rootdir,snlist)
-        if not os.path.exists(snlist):
-            raise RuntimeError('SN list file %s does not exist'%snlist)
-        snfiles = np.genfromtxt(snlist,dtype='str')
-        snfiles = np.atleast_1d(snfiles)
+            snlist = os.path.expandvars(snlist)
+            if not os.path.exists(snlist):
+                log.info('SN list file %s does not exist.       Checking %s/trainingdata/%s'%(snlist,data_rootdir,snlist))
+                snlist = '%s/trainingdata/%s'%(data_rootdir,snlist)
+            if not os.path.exists(snlist):
+                raise RuntimeError('SN list file %s does not exist'%snlist)
+            snfiles = np.genfromtxt(snlist,dtype='str')
+            snfiles = np.atleast_1d(snfiles)
 
-        nsnperlist += [len(snfiles)]
+            nsnperlist += [len(snfiles)]
+    else:
+        nsnperlist = [1]
+        snlist = os.path.expandvars(snlists)  # LIAM added this
+        # snfiles = np.genfromtxt(snlist,dtype='str')  # LIAM added this
+        snfiles = np.atleast_1d([snlist])  # LIAM added this
+    
     nsnperlist=np.array(nsnperlist)
     skipcount = 0
     rdstart = time()
+    
     #If there is a maximum number of SNe to be taken in total, take an equal number from each snlist
     if maxsn is not None: maxcount = nsnperlist*maxsn/nsnperlist.sum()
     else: maxcount = [np.inf]*len(snlists.split(','))
+    
 
     #Check whether to add the supernova to a dictionary of results; if not return False, otherwise do so and return True 
     def processsupernovaobject(outputdict,sn,maxnum,n_specrecal):
@@ -443,7 +455,8 @@ def rdAllData(snlists,estimate_tpk,
             if 'FLT' not in sn.__dict__.keys() and \
                'BAND' in sn.__dict__.keys():
                 sn.FLT = sn.BAND
-                    
+            #print("===============")
+            #print(sn.__dict__)        
             sn.SNID=str(sn.SNID)
 
             if sn.SNID in datadict: duplicatesurvey=datadict[sn.SNID].survey
@@ -469,13 +482,16 @@ def rdAllData(snlists,estimate_tpk,
                 raise BreakLoopException('Maximum number of SNe read in')
 
             return True
-            
-
+    print("^^^^^^^^^^^^^^^^^^")           
+    print(snlists)
     for snlist,maxct in zip(snlists.split(','),maxcount):
         tsn = time()
         snlist = os.path.expandvars(snlist)
-        snfiles = np.genfromtxt(snlist,dtype='str')
-        snfiles = np.atleast_1d(snfiles)
+        if snlist.endswith('.parquet'):
+            snfiles = np.atleast_1d([snlist])  # LIAM added this
+        else:
+            snfiles = np.genfromtxt(snlist,dtype='str')
+            snfiles = np.atleast_1d(snfiles)
         snreadinfromlist={}
 
         try:
@@ -483,8 +499,25 @@ def rdAllData(snlists,estimate_tpk,
                 if '/' not in f:
                     f = os.path.join(os.path.dirname(snlist),f)
 
+                # LIAM - if for parquet that makes list of snids to loop through data frame like the fits:
+                if f.endswith('.parquet'):
+                    # get list of SNIDs
+                    # read parquet into df
+                    df = pd.read_parquet(f)
+                    snidlist = df.SNID
+                    # use parquet function instead:
+                    for snid in snidlist:
+                        sn = snana.SuperNova(
+                            snid=snid,parquetfile=f,readspec=dospec)
+                    # im not sure what to do with this since the function overall returns datadict which needs snreadinfromlist:
+                    if specrecallist:
+                            n_specrecal = src[src['SNID'] == snid]
+                    else:
+                        n_specrecal = None
+                    skipcount+=not processsupernovaobject(snreadinfromlist,sn,maxct,n_specrecal)
+
                 #If this is a fits file, read the list of snids and read them out one at a time
-                if f.lower().endswith('.fits') or f.lower().endswith('.fits.gz'):
+                elif f.lower().endswith('.fits') or f.lower().endswith('.fits.gz'):  # LIAM changed this to else if.
 
                     if f.lower().endswith('.fits') and not os.path.exists(f) and os.path.exists('{}.gz'.format(f)):
                         f = '{}.gz'.format(f)
@@ -516,10 +549,14 @@ def rdAllData(snlists,estimate_tpk,
                     if '/' not in f:
                         f = '%s/%s'%(os.path.dirname(snlist),f)
                     sn = snana.SuperNova(f,readspec=dospec)
+                    print(sn)
+                    print(f)
                     if specrecallist:
                         n_specrecal = src[src['SNID'] == sn.SNID]
                     else:
                         n_specrecal = None
+
+                    print("here")
                         
                     skipcount+=not processsupernovaobject(snreadinfromlist,sn,maxct,n_specrecal)
         except BreakLoopException:
@@ -531,5 +568,4 @@ def rdAllData(snlists,estimate_tpk,
     if not len(datadict.keys()):
         raise RuntimeError('no light curve data to train on!!')
 
-    return datadict
-        
+    return datadict   

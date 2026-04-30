@@ -1066,7 +1066,7 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",file=foutc
                                            dospec=self.options.dospec,
                                            peakmjdlist=self.options.tmaxlist,
                                            binspecres=binspecres,snparlist=self.options.snparlist,
-                                           maxsn=self.options.maxsn,
+                                           maxsn=self.options.maxsn, 
                                            specrecallist=self.options.specrecallist)
                 
             tlc = time.time()

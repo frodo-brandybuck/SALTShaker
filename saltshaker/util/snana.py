@@ -10,6 +10,8 @@ from matplotlib import pyplot as p
 from matplotlib import patches
 from astropy.time import Time
 import gzip
+import pandas as pd  # LIAM added this.
+
 
 SNTYPEDICT = {1:'Ia',10:'Ia',2:'II',3:'Ibc',32:'Ib',33:'Ic',20:'IIP',21:'IIn',22:'IIL',23:'IIb',42:'Ia',101:'Ia',0:'Ia' }
 
@@ -140,7 +142,8 @@ class SuperNova( object ) :
             snid=None,
             verbose=False,
             simdir=None,
-            readspec=True
+            readspec=True,
+            parquetfile=None  # LIAM added this.
     ) : 
         """ Read in header info (z,type,etc) and full light curve data.
         For simulated SNe stored in fits tables, user must provide the simname and snid,
@@ -149,7 +152,7 @@ class SuperNova( object ) :
         For observed or simulated SNe stored in ascii .dat files, user must provide 
         the full path to the datfile.
         """
-        if not (datfile or (snid and headfitsfile and photfitsfile)) : 
+        if not (datfile or (snid and headfitsfile and photfitsfile) or parquetfile) : # LIAM added this.
             if verbose:  print("No datfile or simname provided. Returning an empty SuperNova object.")
         
         if headfitsfile and photfitsfile and snid :
@@ -167,8 +170,18 @@ class SuperNova( object ) :
             if specfits is not None and readspec: gotspec = self.getspecfits( specfits=specfits )
             else: self.SPECTRA = {}
         elif datfile :  
+            print("good if !")
             if verbose : print("Reading in data from light curve file %s"%(datfile))
             self.readdatfile( datfile, readspec=readspec ) 
+        elif parquetfile and snid:  # LIAM added this.
+            self.snid = snid
+            print("reading parquet:")
+            path_to_parquet = os.path.abspath(parquetfile)
+            print(path_to_parquet)
+            self.path_to_parquet = path_to_parquet
+            df = pd.read_parquet(path_to_parquet)
+            self.readparquetfile(df, snid) 
+            
 
     @property
     def name(self):
@@ -425,6 +438,72 @@ class SuperNova( object ) :
         else : 
             return( 0 ) 
 
+    # LIAM added this: ################################################################################################################################################
+
+    # Parquet: /Users/liam/Desktop/Pitt/Research/training_spectra/SALT3TRAIN_PanPlus_nested/SALT3TRAIN_PanPlus_add_col.parquet
+
+    # Should read this outside of function so function doesn't have to keep reading it for every new snid?
+    dicts_list = []
+    # Same logic with the list?
+
+    def readparquetfile(self, df, snid):
+        #print("xxxxxxxxxxxxx")
+        #print(snid)
+        #print(df)
+        i = np.where(df.SNID == snid)[0][0]
+        #print(i)
+        self.SNID = snid
+        dict = {
+            'datfile': self.path_to_parquet,
+            'SURVEY': df.iloc[i].SURVEY,
+            'SNID': df.iloc[i].SNID,
+            'IAUC': 'UNKNOWN',
+            'RA': str(float(df.iloc[i].RA)) + ' deg',
+            'DEC': str(float(df.iloc[i].DEC)) + ' deg',
+            'MWEBV': str(df.iloc[i].MWEBV) + ' # MW E(B-V)',
+            'SEARCH_PEAKMJD': df.iloc[i].SEARCH_PEAKMJD,
+            'FILTERS': df.iloc[i].FILTERS,
+            'REDSHIFT_HELIO': str(df.iloc[i].REDSHIFT_HELIO) + ' +- ' + str(df.iloc[i].REDSHIFT_HELIO_err),
+            'REDSHIFT_CMB': str(df.iloc[i].REDSHIFT_CMB) + ' +- ' + str(df.iloc[i].REDSHIFT_CMB_err),
+            'VPEC': str(df.iloc[i].VPEC) + ' +- ' + str(df.iloc[i].VPEC_err),
+            **df.iloc[i].lc,
+            'END_PHOTOMETRY': '' }  # Dictionary for all non spec-specific data.
+        if df.iloc[i].spec != None:
+            varnames_spec = ''
+            for q in range(len(df.iloc[i].spec.keys())):  # create a string of the varnames for spec seperated by spaces
+                varnames_spec += list(df.iloc[i].spec.keys())[q]
+                if q < len(df.iloc[i].spec.keys()) - 1:
+                    varnames_spec += ' '
+            dict_spec = {
+                'NSPECTRA': len(np.unique(df.iloc[i].spec['MJD'])),
+                'NVAR_SPEC': 5,
+                'VARNAMES_SPEC': varnames_spec,
+                'SPECTRUM_ID': len(np.unique(df.iloc[i].spec['MJD'])),           # ID of last spectrum (with index starting at 1).
+                'SPECTRUM_MJD': float(np.unique(df.iloc[i].spec['MJD'])[-1]),    # MJD of last spectrum.
+                'SPECTRUM_NLAM': float(len(df.iloc[i].spec['LAMMIN'][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[-1])])),      
+                    # Length of list of wavelengths for last unique MJD spectrum. ^
+                'SPEC': str(float(np.unique(df.iloc[i].spec['LAMMIN'])[-1])) + ' ' + 
+                        str(float(np.unique(df.iloc[i].spec['LAMMAX'])[-1])) + ' ' +
+                        str(float(np.unique(df.iloc[i].spec['FLAM'])[-1])) + ' ' +
+                        str(float(np.unique(df.iloc[i].spec['FLAMERR'])[-1])) + ' ' +
+                        str(int(np.unique(df.iloc[i].spec['SPECFLAG'])[-1])),
+                'SPECTRUM_END': '',
+                'SPECTRA': {j: {
+                    'SPECTRUM_NLAM': float(len(df.iloc[i].spec['LAMMIN'][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[j])])),  
+                        # The last slice is a list of indeces where the MJD is equal to the MJD of index j of the unique MJD list. ^
+                    'SPECTRUM_MJD': float(np.unique(df.iloc[i].spec['MJD'])[j]),
+                    **{k: df.iloc[i].spec[k][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[j])] 
+                        for k in ['LAMMIN', 'LAMMAX',  'FLAM',  'FLAMERR', 'SPECFLAG']}  # This is an unwrapped dictionary for the ith spec at the jth unique MJD spectrum.
+                    } for j in range(len(np.unique(df.iloc[i].spec['MJD'])))}    
+            }  # Dictionary for all spec-specific data.
+
+        else:
+            dict_spec = {}
+         
+        self.__dict__ = dict | dict_spec
+
+    ####################################################################################################################################################################
+
     def readdatfile(self, datfile, readspec=True ):
         """ read the light curve data from the SNANA-style .dat file.
         Metadata in the header are in "key: value" pairs
@@ -435,6 +514,8 @@ class SuperNova( object ) :
         # TODO : could make the data reading more general: instead of assuming the 6 known 
         #   columns, just iterate over the varlist.
         from numpy import array,log10,unique,where
+
+        print("begin read .dat")
 
         self.datfile = os.path.abspath(datfile)
         if not os.path.isfile(datfile) and not os.path.isfile(datfile+'.gz'): raise RuntimeError( "%s does not exist."%datfile)
@@ -492,6 +573,8 @@ class SuperNova( object ) :
 
         for col in colnames : 
             self.__dict__[col] = array( self.__dict__[col] )
+
+        # print(f".dat dictionary: {self.__dict__}")
 
         if readspec: self.readspecfromlcfile(datfile)
         
