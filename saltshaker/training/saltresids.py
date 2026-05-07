@@ -128,6 +128,7 @@ class SALTResids:
     configoptionnames = set()
     
     def __init__(self,datadict,kcordict,saltconfiguration,options):
+        print("saltresids running ***************************************")
         inittime=time.time()
         self.nstep = 0
         self.datadict = datadict
@@ -259,6 +260,7 @@ class SALTResids:
         pbspl /= denom*HC_ERG_AA
         self.kcordict['default']['Vpbspl'] = pbspl
         
+        print("saltresids line 263 ********************************")
                 
         #Count number of photometric and spectroscopic points
         self.num_spec=sum([datadict[sn].num_specobs for sn in datadict])
@@ -292,10 +294,12 @@ class SALTResids:
         self.waveBinCenters=np.array(
             [(self.wave[np.newaxis,:]*  x ).sum()/x.sum() for x in basisfunctions])
 
-        
+        print("saltresids line 297 ********************************")
         
         #Find the basis functions evaluated at the centers of the basis functions for use in the regularization derivatives
         regularizationDerivs=[np.zeros((self.phaseRegularizationPoints.size*self.waveRegularizationPoints.size,self.im0.size)) for i in range(4)]
+        print(f"length of self.im0: {len(self.im0)} ************************")
+
         for i in range(len(self.im0)):
             for j,derivs in enumerate([(0,0),(1,0),(0,1),(1,1)]):
                 if self.bsorder == 0: continue
@@ -303,8 +307,12 @@ class SALTResids:
                     self.phaseRegularizationPoints,self.waveRegularizationPoints,
                     (self.phaseknotloc,self.waveknotloc,np.arange(self.im0.size)==i,self.bsorder,self.bsorder),
                     dx=derivs[0],dy=derivs[1]).flatten()
+        print("finish for loop line ************")
+        print(f"1. regularizationDerivs = {regularizationDerivs}")
         regularizationDerivs=map(sparse.BCOO.fromdense,regularizationDerivs)
+        print(f"2. regularizationDerivs = {regularizationDerivs}")
         self.componentderiv,self.dcompdphasederiv,self.dcompdwavederiv,self.ddcompdwavedphase =regularizationDerivs
+        print("saltresids line 314 ********************************")
 
         #Color law initialization
         if self.preintegrate_photometric_passband:
@@ -321,11 +329,15 @@ class SALTResids:
         self.colorlawfunction=[colorlaw.getcolorlaw(function)( npars,
         self.colorwaverange) for function,npars in zip(self.colorlaw_function,self.n_colorpars)]
         
+        print("saltresids line 328 ********************************")
+
 
         self.guessScale=np.ones(self.n_components)
         
         self.relativeregularizationweights=jnp.array([1]+[self.variantregularization]*(self.n_components-1)+( [self.mhostregularization] if self.host_component else []))
         
+        print("saltresids line 335 ********************************")
+
         if self.regularize:
             self.updateEffectivePoints()
 
