@@ -16,6 +16,8 @@ def checkSALT(parameters,parlist,lcfiles,snlist,outdir,idx=0):
 		np.array([]),np.array([]),np.array([]),np.array([]),\
 		np.array([]),np.array([]),np.array([])
 	for l in lcfiles:
+		if l.lower().endswith('.parquet'):
+			continue
 		if l.lower().endswith('.fits') or l.lower().endswith('.fits.gz'):
 
 			if '/' not in l:

@@ -192,7 +192,11 @@ class SALTtrainingSN:
                         tpk = pkmjddict[sn.SNID]
                         tpkmsg = 'success: peak MJD provided'
                     except KeyError:
-                        tpkmsg = f'can\'t find tmax in pkmjd file'
+                        log.warning(f'SN {sn.SNID} not found in pkmjd file, falling back to SEARCH_PEAKMJD')
+                        tpk = sn.SEARCH_PEAKMJD
+                        if type(tpk) == str:
+                            tpk = float(sn.SEARCH_PEAKMJD.split()[0])
+                        tpkmsg = 'success: using SEARCH_PEAKMJD as fallback'
                 else:
                     tpk = sn.SEARCH_PEAKMJD
                     if type(tpk) == str:
@@ -509,12 +513,11 @@ def rdAllData(snlists,estimate_tpk,
                     for snid in snidlist:
                         sn = snana.SuperNova(
                             snid=snid,parquetfile=f,readspec=dospec)
-                    # im not sure what to do with this since the function overall returns datadict which needs snreadinfromlist:
-                    if specrecallist:
+                        if specrecallist:
                             n_specrecal = src[src['SNID'] == snid]
-                    else:
-                        n_specrecal = None
-                    skipcount+=not processsupernovaobject(snreadinfromlist,sn,maxct,n_specrecal)
+                        else:
+                            n_specrecal = None
+                        skipcount+=not processsupernovaobject(snreadinfromlist,sn,maxct,n_specrecal)
 
                 #If this is a fits file, read the list of snids and read them out one at a time
                 elif f.lower().endswith('.fits') or f.lower().endswith('.fits.gz'):  # LIAM changed this to else if.

@@ -291,6 +291,8 @@ class SALTPriors:
                 recalterm=spectrum.recaltermderivs[::thinning,:] @ coeffs
 
                 residuals+=[(recalterm/width)]
+        if not residuals:
+            return jnp.array([])
         return jnp.concatenate(residuals)
     
     @prior
