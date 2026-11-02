@@ -170,7 +170,6 @@ class SuperNova( object ) :
             if specfits is not None and readspec: gotspec = self.getspecfits( specfits=specfits )
             else: self.SPECTRA = {}
         elif datfile :  
-            print("good if !")
             if verbose : print("Reading in data from light curve file %s"%(datfile))
             self.readdatfile( datfile, readspec=readspec ) 
         elif parquetfile and snid:  # LIAM added this.
@@ -440,19 +439,17 @@ class SuperNova( object ) :
 
     # LIAM added this: ################################################################################################################################################
 
-    # Parquet: /Users/liam/Desktop/Pitt/Research/training_spectra/SALT3TRAIN_PanPlus_nested/SALT3TRAIN_PanPlus_add_col.parquet
+    # Parquet: '/Users/liam/hyrax_research/SNe Data Files/SALT3TRAIN_PanPlus_nested/SALT3TRAIN_PanPlus_add_col_corrected_FLT.parquet'
 
     # Should read this outside of function so function doesn't have to keep reading it for every new snid?
     dicts_list = []
     # Same logic with the list?
 
     def readparquetfile(self, df, snid):
-        #print("xxxxxxxxxxxxx")
-        #print(snid)
-        #print(df)
         i = np.where(df.SNID == snid)[0][0]
-        #print(i)
+        # print(f"reading in {snid} at index {i}")
         self.SNID = snid
+
         dict = {
             'datfile': self.path_to_parquet,
             'SURVEY': df.iloc[i].SURVEY,
@@ -462,6 +459,7 @@ class SuperNova( object ) :
             'DEC': str(float(df.iloc[i].DEC)) + ' deg',
             'MWEBV': str(df.iloc[i].MWEBV) + ' # MW E(B-V)',
             'SEARCH_PEAKMJD': df.iloc[i].SEARCH_PEAKMJD,
+            #'FILTERS': df.iloc[i].lc["FLT"], <- idk if this changes much.
             'FILTERS': df.iloc[i].FILTERS,
             'REDSHIFT_HELIO': str(df.iloc[i].REDSHIFT_HELIO) + ' +- ' + str(df.iloc[i].REDSHIFT_HELIO_err),
             'REDSHIFT_CMB': str(df.iloc[i].REDSHIFT_CMB) + ' +- ' + str(df.iloc[i].REDSHIFT_CMB_err),
@@ -496,11 +494,14 @@ class SuperNova( object ) :
                         for k in ['LAMMIN', 'LAMMAX',  'FLAM',  'FLAMERR', 'SPECFLAG']}  # This is an unwrapped dictionary for the ith spec at the jth unique MJD spectrum.
                     } for j in range(len(np.unique(df.iloc[i].spec['MJD'])))}    
             }  # Dictionary for all spec-specific data.
-
         else:
             dict_spec = {}
-         
+        
         self.__dict__ = dict | dict_spec
+
+        print(self.__dict__)
+
+        # Recreate file like we did for test20, find in a seperate hyrax 
 
     ####################################################################################################################################################################
 
@@ -574,9 +575,11 @@ class SuperNova( object ) :
         for col in colnames : 
             self.__dict__[col] = array( self.__dict__[col] )
 
-        # print(f".dat dictionary: {self.__dict__}")
-
         if readspec: self.readspecfromlcfile(datfile)
+
+        print(self.__dict__) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< LIAM ADDED THIS
+        print(" \n")
+        print(" \n")
         
         return( None )
 

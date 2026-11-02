@@ -962,6 +962,7 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",file=foutc
         # prelims
         plt.subplots_adjust(left=None, bottom=None, right=None, top=0.85, wspace=0.025, hspace=0)
         x0,x1,c,t0 = np.loadtxt(f'{outputdir}/salt3train_snparams.txt',unpack=True,usecols=[1,2,3,4])
+        t0 = list(t0)  # Fix for later logic error (6-17-2026)
         snid = np.genfromtxt(f'{outputdir}/salt3train_snparams.txt',unpack=True,dtype='str',usecols=[0])
 
 
@@ -1161,6 +1162,8 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",file=foutc
                     snidval = int(sn.SNID)
                 else:
                     snidval = None
+                print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                print(f"t0sn = {t0sn}")
                 salt2chi2,salt3chi2 = ValidateLightcurves.customfilt(
                     f'{outputdir}/lccomp_{sn.SNID}.png',l,outputdir,
                     t0=t0sn,x0=x0sn,x1=x1sn,c=csn,fitx1=fitx1,fitc=fitc,
