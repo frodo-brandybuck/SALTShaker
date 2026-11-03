@@ -30,8 +30,25 @@ from astropy.time import Time
 import gzip
 import pandas as pd
 
+_parquet_cache = {}
 
-SNTYPEDICT = {1:'Ia',10:'Ia',2:'II',3:'Ibc',32:'Ib',33:'Ic',20:'IIP',21:'IIn',22:'IIL',23:'IIb',42:'Ia',101:'Ia',0:'Ia' }
+
+def read_parquet_cached(parquetfile):
+    """Read a parquet file, reusing the last result while the file is unchanged.
+
+    Training reads one SN at a time, so without this the whole file would be
+    read again for every SN. Only the most recently read file is kept.
+    The returned DataFrame is shared between callers, so don't modify it.
+    """
+    path = os.path.abspath(parquetfile)
+    key = (path, os.path.getmtime(path))
+    if key not in _parquet_cache:
+        _parquet_cache.clear()
+        _parquet_cache[key] = pd.read_parquet(path)
+    return _parquet_cache[key]
+
+
+SNTYPEDICT ={1:'Ia',10:'Ia',2:'II',3:'Ibc',32:'Ib',33:'Ic',20:'IIP',21:'IIn',22:'IIL',23:'IIb',42:'Ia',101:'Ia',0:'Ia' }
 
 BANDCOLOR = {'g':'b','r':'g','i':'r','z':'darkorange'}
 BANDMARKER = {'g':'o','r':'o','i':'o','z':'o'}
@@ -240,10 +257,9 @@ class SuperNova(object):
             self.readdatfile( datfile, readspec=readspec ) 
         elif parquetfile and snid:
             self.snid = snid
-            path_to_parquet = os.path.abspath(parquetfile)
-            self.path_to_parquet = path_to_parquet
-            df = pd.read_parquet(path_to_parquet)
-            self.readparquetfile(df, snid) 
+            self.path_to_parquet = os.path.abspath(parquetfile)
+            df = read_parquet_cached(parquetfile)
+            self.readparquetfile(df, snid)
             
 
     @property

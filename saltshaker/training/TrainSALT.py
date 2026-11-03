@@ -1906,8 +1906,7 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                         snfilelist.append(l)
                 
                 elif l.lower().endswith('.parquet'):
-                    import pandas as pd
-                    df = pd.read_parquet(l)
+                    df = snana.read_parquet_cached(l)
                     for pq_snid in df['SNID'].astype(str):
                         if pq_snid not in datadict:
                             continue

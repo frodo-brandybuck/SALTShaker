@@ -25,7 +25,6 @@ rdkcor
 
 import os
 import numpy as np
-import pandas as pd
 from saltshaker.util import snana
 from saltshaker.util.estimate_tpk_bazin import estimate_tpk_bazin
 from astropy.io import fits
@@ -817,7 +816,7 @@ def rdAllData(
 
                 # If this is a parquet file, loop over the SNIDs in its data frame
                 if f.endswith(".parquet"):
-                    df = pd.read_parquet(f)
+                    df = snana.read_parquet_cached(f)
                     for snid in df.SNID:
                         sn = snana.SuperNova(snid=snid, parquetfile=f, readspec=dospec)
                         if specrecallist:
