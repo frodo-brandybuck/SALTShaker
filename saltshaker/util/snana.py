@@ -499,8 +499,6 @@ class SuperNova( object ) :
         
         self.__dict__ = dict | dict_spec
 
-        print(self.__dict__)
-
         # Recreate file like we did for test20, find in a seperate hyrax 
 
     ####################################################################################################################################################################
@@ -577,9 +575,6 @@ class SuperNova( object ) :
 
         if readspec: self.readspecfromlcfile(datfile)
 
-        print(self.__dict__) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< LIAM ADDED THIS
-        print(" \n")
-        print(" \n")
         
         return( None )
 
