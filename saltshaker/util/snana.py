@@ -501,13 +501,8 @@ class SuperNova(object):
         else : 
             return( 0 ) 
 
-    # Should read this outside of function so function doesn't have to keep reading it for every new snid?
-    dicts_list = []
-    # Same logic with the list?
-
     def readparquetfile(self, df, snid):
         i = np.where(df.SNID == snid)[0][0]
-        # print(f"reading in {snid} at index {i}")
         self.SNID = snid
 
         dict = {
@@ -519,7 +514,6 @@ class SuperNova(object):
             'DEC': str(float(df.iloc[i].DEC)) + ' deg',
             'MWEBV': str(df.iloc[i].MWEBV) + ' # MW E(B-V)',
             'SEARCH_PEAKMJD': df.iloc[i].SEARCH_PEAKMJD,
-            #'FILTERS': df.iloc[i].lc["FLT"], <- idk if this changes much.
             'FILTERS': df.iloc[i].FILTERS,
             'REDSHIFT_HELIO': str(df.iloc[i].REDSHIFT_HELIO) + ' +- ' + str(df.iloc[i].REDSHIFT_HELIO_err),
             'REDSHIFT_CMB': str(df.iloc[i].REDSHIFT_CMB) + ' +- ' + str(df.iloc[i].REDSHIFT_CMB_err),
@@ -558,8 +552,6 @@ class SuperNova(object):
             dict_spec = {}
         
         self.__dict__ = dict | dict_spec
-
-        # Recreate file like we did for test20, find in a seperate hyrax 
 
     def readdatfile(self, datfile, readspec=True ):
         """ read the light curve data from the SNANA-style .dat file.

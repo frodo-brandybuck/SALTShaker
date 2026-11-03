@@ -183,7 +183,7 @@ def customfilt(outfile,lcfile,salt3dir,
         plt.clf()
     
     fitparams_salt3 = []
-    if not t0: fitparams_salt3 += ['t0']  # Error from 6/17/2026 leads here: Truth value of array with more than one element is ambiguous without use of .any() or.all().
+    if not t0: fitparams_salt3 += ['t0']
     if not x0: fitparams_salt3 += ['x0']
     if not x1 and fitx1: fitparams_salt3 += ['x1']
     if not c and fitc: fitparams_salt3 += ['c']
