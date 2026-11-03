@@ -1486,25 +1486,37 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                     if not os.path.exists(snlist):
                         raise RuntimeError(f"SN list file {snlist} does not exist")
 
-
-                if snlist.endswith('.parquet'):
+                if snlist.endswith(".parquet"):
                     import pandas as pd
+
                     df = pd.read_parquet(snlist)
-                    df['SNID'] = df['SNID'].astype(str)
-                    df = df.set_index('SNID')
+                    df["SNID"] = df["SNID"].astype(str)
+                    df = df.set_index("SNID")
                     for k in trainingresult.snparams.keys():
-                        SIM_x0,SIM_x1,SIM_c,SIM_PEAKMJD,salt2x0,salt2x1,salt2c,salt2t0 = -99,-99,-99,-99,-99,-99,-99,-99
+                        SIM_x0, SIM_x1, SIM_c, SIM_PEAKMJD = -99, -99, -99, -99
+                        salt2x0, salt2x1, salt2c, salt2t0 = -99, -99, -99, -99
                         if str(k) in df.index:
                             row = df.loc[str(k)]
-                            if 'x0' in df.columns: salt2x0 = float(row['x0'])
-                            if 'x1' in df.columns: salt2x1 = float(row['x1'])
-                            if 'c' in df.columns: salt2c = float(row['c'])
-                        if 't0' not in trainingresult.snparams[k].keys():
-                            trainingresult.snparams[k]['t0'] = 0.0
-                        print(f"{k} {trainingresult.snparams[k]['x0']:8.10e} {trainingresult.snparams[k]['x1']:.10f} {trainingresult.snparams[k]['c'] if 'c' in trainingresult.snparams[k] else trainingresult.snparams[k]['c0']:.10f} {trainingresult.snparams[k]['t0']:.10f} {SIM_x0:8.10e} {SIM_x1:.10f} {SIM_c:.10f} {SIM_PEAKMJD:.2f} {salt2x0:8.10e} {salt2x1:.10f} {salt2c:.10f} {salt2t0:.10f}",file=foutsn)
+                            if "x0" in df.columns:
+                                salt2x0 = float(row["x0"])
+                            if "x1" in df.columns:
+                                salt2x1 = float(row["x1"])
+                            if "c" in df.columns:
+                                salt2c = float(row["c"])
+                        snparams = trainingresult.snparams[k]
+                        if "t0" not in snparams.keys():
+                            snparams["t0"] = 0.0
+                        cval = snparams["c"] if "c" in snparams else snparams["c0"]
+                        print(
+                            f"{k} {snparams['x0']:8.10e} {snparams['x1']:.10f} "
+                            f"{cval:.10f} {snparams['t0']:.10f} "
+                            f"{SIM_x0:8.10e} {SIM_x1:.10f} {SIM_c:.10f} {SIM_PEAKMJD:.2f} "
+                            f"{salt2x0:8.10e} {salt2x1:.10f} {salt2c:.10f} {salt2t0:.10f}",
+                            file=foutsn,
+                        )
                     continue
 
-                snfiles = np.genfromtxt(snlist,dtype='str')
+                snfiles = np.genfromtxt(snlist, dtype="str")
                 snfiles = np.atleast_1d(snfiles)
 
                 for k in trainingresult.snparams.keys():
@@ -1717,14 +1729,18 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
         snfiles_tot = np.array([])
         for j, snlist in enumerate(self.options.snlists.split(",")):
             snlist = os.path.expandvars(snlist)
-            if snlist.endswith('.parquet'):
+            if snlist.endswith(".parquet"):
                 snfiles = np.atleast_1d([snlist])
             else:
-                snfiles = np.genfromtxt(snlist,dtype='str')
+                snfiles = np.genfromtxt(snlist, dtype="str")
                 snfiles = np.atleast_1d(snfiles)
-            snfiles_tot = np.append(snfiles_tot,snfiles)
-            parlist,parameters = np.genfromtxt(
-                f'{outputdir}/salt3_parameters.dat',unpack=True,dtype=str,skip_header=1)
+            snfiles_tot = np.append(snfiles_tot, snfiles)
+            parlist, parameters = np.genfromtxt(
+                f"{outputdir}/salt3_parameters.dat",
+                unpack=True,
+                dtype=str,
+                skip_header=1,
+            )
             parameters = parameters.astype(float)
             CheckSALTParams.checkSALT(
                 parameters, parlist, snfiles, snlist, outputdir, idx=j
@@ -1840,16 +1856,23 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                     binspecres = None
 
                 ValidateSpectra.compareSpectra(
-                    snlist,self.options.outputdir,specfile=f'{self.options.outputdir}/speccomp_{j:.0f}.pdf',
-                    maxspec=2000,base=self,verbose=self.verbose,datadict=datadict,binspecres=binspecres)
-            log.info(f'plotting spectra took {time.time()-tspec:.1f}')
-                
-            if snlist.endswith('.parquet'):
+                    snlist,
+                    self.options.outputdir,
+                    specfile=f"{self.options.outputdir}/speccomp_{j:.0f}.pdf",
+                    maxspec=2000,
+                    base=self,
+                    verbose=self.verbose,
+                    datadict=datadict,
+                    binspecres=binspecres,
+                )
+            log.info(f"plotting spectra took {time.time()-tspec:.1f}")
+
+            if snlist.endswith(".parquet"):
                 snfiles = np.atleast_1d([snlist])
             else:
-                snfiles = np.genfromtxt(snlist,dtype='str')
+                snfiles = np.genfromtxt(snlist, dtype="str")
                 snfiles = np.atleast_1d(snfiles)
-            fitx1,fitc = False,False
+            fitx1, fitc = False, False
             if self.options.n_components == 2:
                 fitx1 = True
             if self.options.n_colorpars[0] > 0:
@@ -1904,13 +1927,15 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                         sn.SNID = str(sn.SNID)
                         plotsnlist.append(sn)
                         snfilelist.append(l)
-                
-                elif l.lower().endswith('.parquet'):
+
+                elif l.lower().endswith(".parquet"):
                     df = snana.read_parquet_cached(l)
-                    for pq_snid in df['SNID'].astype(str):
+                    for pq_snid in df["SNID"].astype(str):
                         if pq_snid not in datadict:
                             continue
-                        sn = snana.SuperNova(snid=pq_snid, parquetfile=l, readspec=False)
+                        sn = snana.SuperNova(
+                            snid=pq_snid, parquetfile=l, readspec=False
+                        )
                         sn.SNID = str(sn.SNID)
                         plotsnlist.append(sn)
                         snfilelist.append(l)
