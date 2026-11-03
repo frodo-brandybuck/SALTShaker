@@ -240,9 +240,7 @@ class SuperNova(object):
             self.readdatfile( datfile, readspec=readspec ) 
         elif parquetfile and snid:  # LIAM added this.
             self.snid = snid
-            print("reading parquet:")
             path_to_parquet = os.path.abspath(parquetfile)
-            print(path_to_parquet)
             self.path_to_parquet = path_to_parquet
             df = pd.read_parquet(path_to_parquet)
             self.readparquetfile(df, snid) 
