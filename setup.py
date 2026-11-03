@@ -14,9 +14,9 @@ class SALTShakerTest(TestCommand):
 		errno = shaker.test()
 		sys.exit(errno)
 
-AUTHOR = 'David Jones, Rick Kessler'
+AUTHOR = "David Jones, D'Arcy Kenworthy, Rick Kessler"
 AUTHOR_EMAIL = 'dojones@hawaii.edu'
-VERSION = '1.4'
+VERSION = '1.5'
 LICENSE = 'BSD'
 URL = 'saltshaker.readthedocs.org'
 
@@ -40,6 +40,7 @@ setup(
 	author_email=AUTHOR_EMAIL,
 	license=LICENSE,
 	long_description=open('README.md').read(),
+    long_description_content_type="text/markdown",
 #         include_dirs=numpy.distutils.misc_util.get_numpy_include_dirs(),
 
 	install_requires=['astropy>=5.3',

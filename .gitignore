@@ -1,4 +1,3 @@
-examples
 *archive
 *.pyo
 *.pyc
@@ -28,3 +27,4 @@ v
 SIMLOGS_SIM*
 *temp*
 *.pickle
+examples
