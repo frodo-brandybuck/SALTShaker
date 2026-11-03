@@ -1908,10 +1908,10 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                 elif l.lower().endswith('.parquet'):
                     import pandas as pd
                     df = pd.read_parquet(l)
-                    for snid in df['SNID'].astype(str):
-                        if snid not in datadict:
+                    for pq_snid in df['SNID'].astype(str):
+                        if pq_snid not in datadict:
                             continue
-                        sn = snana.SuperNova(snid=snid, parquetfile=l, readspec=False)
+                        sn = snana.SuperNova(snid=pq_snid, parquetfile=l, readspec=False)
                         sn.SNID = str(sn.SNID)
                         plotsnlist.append(sn)
                         snfilelist.append(l)
@@ -1954,7 +1954,9 @@ Salt2ExtinctionLaw.max_lambda {self.options.colorwaverange[1]:.0f}""",
                 if not fitx1:
                     x1sn = 0
 
-                if ".fits" in l.lower():
+                if l.lower().endswith(".parquet"):
+                    snidval = sn.SNID
+                elif ".fits" in l.lower():
                     snidval = int(sn.SNID)
                 else:
                     snidval = None

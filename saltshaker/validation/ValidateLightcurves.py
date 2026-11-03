@@ -188,8 +188,11 @@ def customfilt(outfile,lcfile,salt3dir,
     if not x1 and fitx1: fitparams_salt3 += ['x1']
     if not c and fitc: fitparams_salt3 += ['c']
     
-    if not '.fits' in lcfile.lower():
-        sn = snana.SuperNova(lcfile)
+    if lcfile.lower().endswith('.parquet') or not '.fits' in lcfile.lower():
+        if lcfile.lower().endswith('.parquet'):
+            sn = snana.SuperNova(snid=snid, parquetfile=lcfile, readspec=False)
+        else:
+            sn = snana.SuperNova(lcfile)
         try:
             sn.REDSHIFT_HELIO = float(sn.REDSHIFT_HELIO.split('+-')[0])
         except:
