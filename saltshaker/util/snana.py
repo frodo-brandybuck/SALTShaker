@@ -28,7 +28,7 @@ from matplotlib import pyplot as p
 from matplotlib import patches
 from astropy.time import Time
 import gzip
-import pandas as pd  # LIAM added this.
+import pandas as pd
 
 
 SNTYPEDICT = {1:'Ia',10:'Ia',2:'II',3:'Ibc',32:'Ib',33:'Ic',20:'IIP',21:'IIn',22:'IIL',23:'IIb',42:'Ia',101:'Ia',0:'Ia' }
@@ -218,7 +218,7 @@ class SuperNova(object):
         For observed or simulated SNe stored in ascii .dat files, user must provide 
         the full path to the datfile.
         """
-        if not (datfile or (snid and headfitsfile and photfitsfile) or parquetfile) : # LIAM added this.
+        if not (datfile or (snid and headfitsfile and photfitsfile) or parquetfile) : 
             if verbose:  print("No datfile or simname provided. Returning an empty SuperNova object.")
         
         if headfitsfile and photfitsfile and snid :
@@ -238,7 +238,7 @@ class SuperNova(object):
         elif datfile :  
             if verbose : print("Reading in data from light curve file %s"%(datfile))
             self.readdatfile( datfile, readspec=readspec ) 
-        elif parquetfile and snid:  # LIAM added this.
+        elif parquetfile and snid:
             self.snid = snid
             path_to_parquet = os.path.abspath(parquetfile)
             self.path_to_parquet = path_to_parquet
@@ -501,10 +501,6 @@ class SuperNova(object):
         else : 
             return( 0 ) 
 
-    # LIAM added this: ################################################################################################################################################
-
-    # Parquet: '/Users/liam/hyrax_research/SNe Data Files/SALT3TRAIN_PanPlus_nested/SALT3TRAIN_PanPlus_add_col_corrected_FLT.parquet'
-
     # Should read this outside of function so function doesn't have to keep reading it for every new snid?
     dicts_list = []
     # Same logic with the list?
@@ -565,8 +561,6 @@ class SuperNova(object):
 
         # Recreate file like we did for test20, find in a seperate hyrax 
 
-    ####################################################################################################################################################################
-
     def readdatfile(self, datfile, readspec=True ):
         """ read the light curve data from the SNANA-style .dat file.
         Metadata in the header are in "key: value" pairs
@@ -577,8 +571,6 @@ class SuperNova(object):
         # TODO : could make the data reading more general: instead of assuming the 6 known 
         #   columns, just iterate over the varlist.
         from numpy import array,log10,unique,where
-
-        print("begin read .dat")
 
         self.datfile = os.path.abspath(datfile)
         if not os.path.isfile(datfile) and not os.path.isfile(datfile+'.gz'): raise RuntimeError( "%s does not exist."%datfile)
