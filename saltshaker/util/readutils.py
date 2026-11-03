@@ -384,13 +384,7 @@ class SALTtrainingSN:
                 tpk = pkmjddict[sn.SNID]
                 tpkmsg = "success: peak MJD provided"
             except KeyError:
-                log.warning(
-                    f"SN {sn.SNID} not found in pkmjd file, falling back to SEARCH_PEAKMJD"
-                )
-                tpk = sn.SEARCH_PEAKMJD
-                if type(tpk) == str:
-                    tpk = float(sn.SEARCH_PEAKMJD.split()[0])
-                tpkmsg = "success: using SEARCH_PEAKMJD as fallback"
+                tpkmsg = f"can't find tmax in pkmjd file"
         else:
             tpk = sn.SEARCH_PEAKMJD
             if type(tpk) == str:
