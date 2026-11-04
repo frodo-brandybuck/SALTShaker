@@ -34,8 +34,10 @@ It also needs two nested columns:
 * `lc`, the light curve, with the same columns as the `VARLIST` of a SNANA
   file (`MJD`, `FLT`, `FLUXCAL`, `FLUXCALERR`, ...).
 * `spec`, all of the SN's spectra stacked together, with columns `LAMMIN`,
-  `LAMMAX`, `FLAM`, `FLAMERR`, `SPECFLAG` and `MJD`.  Rows with the same `MJD`
-  form one spectrum.  Use null for an SN without spectra.
+  `LAMMAX`, `FLAM`, `FLAMERR`, `SPECFLAG`, `MJD` and `SPECTRUM_ID`.  Rows
+  with the same `SPECTRUM_ID` form one spectrum, so several spectra can share
+  an MJD.  If `SPECTRUM_ID` is missing, rows with the same `MJD` are treated
+  as one spectrum.  Use null for an SN without spectra.
 
 Values must be the same as in the SNANA files.  In particular, `FLT` must be
 the full filter name used in the kcor files (e.g. `CFA42-B/P`), and `SNID` must

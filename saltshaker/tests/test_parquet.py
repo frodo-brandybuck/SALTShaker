@@ -48,19 +48,32 @@ def sn_to_parquet_row(sn):
 
     spectra = list(getattr(sn, 'SPECTRA', {}).values())
     if spectra:
-        spec = {c: [] for c in SPEC_COLS + ['MJD']}
-        for s in spectra:
+        spec = {c: [] for c in SPEC_COLS + ['MJD', 'SPECTRUM_ID']}
+        for specid, s in enumerate(spectra, start=1):
             for c in SPEC_COLS:
                 spec[c] += list(np.asarray(s[c], dtype=float))
             spec['MJD'] += [float(s['SPECTRUM_MJD'])] * len(s['LAMMIN'])
+            spec['SPECTRUM_ID'] += [specid] * len(s['LAMMIN'])
         row['spec'] = spec
     else:
         row['spec'] = None
     return row
 
 
-def spectra_by_mjd(sn):
-    return {round(float(s['SPECTRUM_MJD']), 4): s for s in sn.SPECTRA.values()}
+def spectra_in_order(sn):
+    return list(getattr(sn, 'SPECTRA', {}).values())
+
+
+def assert_same_spectra(testcase, p, d):
+    """Check that p and d hold the same spectra, one by one, in file order."""
+    pspec, dspec = spectra_in_order(p), spectra_in_order(d)
+    testcase.assertEqual(len(pspec), len(dspec))
+    for ps, ds in zip(pspec, dspec):
+        testcase.assertAlmostEqual(float(ps['SPECTRUM_MJD']),
+                                   float(ds['SPECTRUM_MJD']))
+        for c in ['LAMMIN', 'FLAM']:
+            np.testing.assert_allclose(np.asarray(ps[c], float),
+                                       np.asarray(ds[c], float))
 
 
 class test_parquet(unittest.TestCase):
@@ -98,16 +111,36 @@ class test_parquet(unittest.TestCase):
                 self.assertAlmostEqual(_value_err(p.REDSHIFT_HELIO)[0],
                                        _value_err(d.REDSHIFT_HELIO)[0])
 
-                pspec = spectra_by_mjd(p) if 'SPECTRA' in p.__dict__ else {}
-                dspec = spectra_by_mjd(d)
-                self.assertEqual(sorted(pspec), sorted(dspec))
-                for mjd in dspec:
-                    for c in ['LAMMIN', 'FLAM']:
-                        np.testing.assert_allclose(
-                            np.asarray(pspec[mjd][c], float),
-                            np.asarray(dspec[mjd][c], float))
-                nwithspec += len(dspec) > 0
+                assert_same_spectra(self, p, d)
+                nwithspec += len(spectra_in_order(d)) > 0
         self.assertGreater(nwithspec, 0)
+
+    def test_spectra_on_same_mjd_stay_separate(self):
+        # Some SNe (e.g. 1991T) have several spectra on one MJD. Give one SN
+        # an extra spectrum on the MJD of its first one and check that the
+        # parquet reader keeps them apart.
+        snid, datfile = next((k, f) for k, f in self.datfiles.items()
+                             if spectra_in_order(snana.SuperNova(f)))
+        d = snana.SuperNova(datfile)
+        first = spectra_in_order(d)[0]
+        extra = dict(first)
+        extra['FLAM'] = np.asarray(first['FLAM'], float) * 2
+        d.SPECTRA = dict(enumerate([first, extra] + spectra_in_order(d)[1:]))
+
+        row = sn_to_parquet_row(d)
+        parquetfile = os.path.join(self.tmpdir, 'samemjd.parquet')
+        pd.DataFrame([row]).to_parquet(parquetfile)
+        p = snana.SuperNova(snid=snid, parquetfile=parquetfile)
+        self.assertEqual(p.NSPECTRA, len(d.SPECTRA))
+        assert_same_spectra(self, p, d)
+
+        # Without SPECTRUM_ID the reader can only group by MJD, so the two
+        # spectra on the same MJD come back as one.
+        del row['spec']['SPECTRUM_ID']
+        parquetfile = os.path.join(self.tmpdir, 'samemjd_noid.parquet')
+        pd.DataFrame([row]).to_parquet(parquetfile)
+        p = snana.SuperNova(snid=snid, parquetfile=parquetfile)
+        self.assertEqual(p.NSPECTRA, len(d.SPECTRA) - 1)
 
     def test_rdAllData_parquet_matches_list(self):
         kwargs = dict(dospec=True, peakmjdlist=TMAXLIST, snparlist=SNPARLIST,

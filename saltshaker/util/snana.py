@@ -537,32 +537,36 @@ class SuperNova(object):
             **df.iloc[i].lc,
             'END_PHOTOMETRY': '' }  # Dictionary for all non spec-specific data.
         if df.iloc[i].spec != None:
-            varnames_spec = ''
-            for q in range(len(df.iloc[i].spec.keys())):  # create a string of the varnames for spec seperated by spaces
-                varnames_spec += list(df.iloc[i].spec.keys())[q]
-                if q < len(df.iloc[i].spec.keys()) - 1:
-                    varnames_spec += ' '
+            spec = df.iloc[i].spec
+            varnames_spec = ' '.join(spec.keys())
+            # Group rows into spectra by SPECTRUM_ID when present, so spectra
+            # taken on the same MJD stay separate. Older parquet files have no
+            # SPECTRUM_ID; fall back to grouping by MJD for those.
+            if 'SPECTRUM_ID' in spec.keys():
+                groupkey = np.asarray(spec['SPECTRUM_ID'])
+                _, first = np.unique(groupkey, return_index=True)
+                specids = groupkey[np.sort(first)]  # file order
+            else:
+                groupkey = np.asarray(spec['MJD'])
+                specids = np.unique(groupkey)
+            spectra = {}
+            for j, specid in enumerate(specids):
+                rows = np.where(groupkey == specid)[0]
+                spectra[j] = {
+                    'SPECTRUM_NLAM': float(len(rows)),
+                    'SPECTRUM_MJD': float(np.asarray(spec['MJD'])[rows[0]]),
+                    **{k: np.asarray(spec[k])[rows]
+                       for k in ['LAMMIN', 'LAMMAX', 'FLAM', 'FLAMERR', 'SPECFLAG']}}
+            last = spectra[len(spectra) - 1]
             dict_spec = {
-                'NSPECTRA': len(np.unique(df.iloc[i].spec['MJD'])),
+                'NSPECTRA': len(spectra),
                 'NVAR_SPEC': 5,
                 'VARNAMES_SPEC': varnames_spec,
-                'SPECTRUM_ID': len(np.unique(df.iloc[i].spec['MJD'])),           # ID of last spectrum (with index starting at 1).
-                'SPECTRUM_MJD': float(np.unique(df.iloc[i].spec['MJD'])[-1]),    # MJD of last spectrum.
-                'SPECTRUM_NLAM': float(len(df.iloc[i].spec['LAMMIN'][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[-1])])),      
-                    # Length of list of wavelengths for last unique MJD spectrum. ^
-                'SPEC': str(float(np.unique(df.iloc[i].spec['LAMMIN'])[-1])) + ' ' + 
-                        str(float(np.unique(df.iloc[i].spec['LAMMAX'])[-1])) + ' ' +
-                        str(float(np.unique(df.iloc[i].spec['FLAM'])[-1])) + ' ' +
-                        str(float(np.unique(df.iloc[i].spec['FLAMERR'])[-1])) + ' ' +
-                        str(int(np.unique(df.iloc[i].spec['SPECFLAG'])[-1])),
+                'SPECTRUM_ID': len(spectra),  # ID of last spectrum (index starting at 1)
+                'SPECTRUM_MJD': last['SPECTRUM_MJD'],
+                'SPECTRUM_NLAM': last['SPECTRUM_NLAM'],
                 'SPECTRUM_END': '',
-                'SPECTRA': {j: {
-                    'SPECTRUM_NLAM': float(len(df.iloc[i].spec['LAMMIN'][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[j])])),  
-                        # The last slice is a list of indeces where the MJD is equal to the MJD of index j of the unique MJD list. ^
-                    'SPECTRUM_MJD': float(np.unique(df.iloc[i].spec['MJD'])[j]),
-                    **{k: df.iloc[i].spec[k][np.where(df.iloc[i].spec['MJD'] == np.unique(df.iloc[i].spec['MJD'])[j])] 
-                        for k in ['LAMMIN', 'LAMMAX',  'FLAM',  'FLAMERR', 'SPECFLAG']}  # This is an unwrapped dictionary for the ith spec at the jth unique MJD spectrum.
-                    } for j in range(len(np.unique(df.iloc[i].spec['MJD'])))}    
+                'SPECTRA': spectra,
             }  # Dictionary for all spec-specific data.
         else:
             dict_spec = {}
